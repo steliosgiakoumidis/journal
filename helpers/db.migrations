@@ -1,0 +1,30 @@
+create TABLE Subject (
+                         Id serial primary key not null,
+                         Firstname VARCHAR(100),
+                         LastName VARCHAR(100),
+                         Phonenumber VARCHAR(100),
+                         Email VARCHAR(100),
+                         Age int ,
+                         AgreedPrice int
+)
+
+create TABLE Session (
+                         Id serial primary key not null,
+                         Title VARCHAR not null,
+                         Notes VARCHAR not null,
+                         Progress int not null,
+                         Date date not null,
+                         Price int not null,
+                         Subject_Id int references subject (Id),
+)
+
+CREATE TABLE Tag(
+                    Id serial primary key not null,
+                    Name VARCHAR not null
+)
+
+CREATE TABLE session_tag(
+                            session_id int REFERENCES Session (Id),
+                            tag_id int REFERENCES Tag (Id),
+                            constraint session_tag_key PRIMARY Key (session_id, tag_id)
+)
