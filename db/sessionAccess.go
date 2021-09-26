@@ -8,10 +8,16 @@ import (
 	"strconv"
 )
 
-func GetSessions() ([]models.Session, error) {
+type SessionRepository struct {
+	TagRepository TagRepository
+}
+
+func (s SessionRepository) GetSessions(subjectId int) ([]models.Session, error) {
 	var rows *sql.Rows
 	var err error
-	rows, err = Db.Query("SELECT * FROM session order by id desc")
+	if rows, err = DbConn.Query("SELECT * FROM session order by id desc"); subjectId != 0 {
+		rows, err = DbConn.Query("SELECT * FROM session where subject_id=$1", subjectId)
+	}
 	if err != nil {
 		fmt.Println("An error occured when getting all sessions. Error: " + err.Error())
 		return nil, err
@@ -29,7 +35,7 @@ func GetSessions() ([]models.Session, error) {
 	}
 
 	for _, v := range sessions {
-		if v.Tags, err = getTagsForSession(v.Id); err != nil {
+		if v.Tags, err = s.getTagsForSession(v.Id); err != nil {
 			fmt.Println("An error occured when getting tags for session_id: " + strconv.Itoa(v.Id) + ". Error: " + err.Error())
 			return nil, err
 		}
@@ -38,12 +44,10 @@ func GetSessions() ([]models.Session, error) {
 	return sessions, nil
 }
 
-func GetSession(id int, bySubjectId bool) (*models.Session, error) {
+func (s SessionRepository) GetSession(id int) (*models.Session, error) {
 	var err error
 	var row *sql.Row
-	if row = Db.QueryRow("SELECT * FROM session where id=$1", id); bySubjectId {
-		row = Db.QueryRow("SELECT * FROM session wheresubject_idd=$1", id)
-	}
+	row = DbConn.QueryRow("SELECT * FROM session where id=$1", id)
 	if row.Err() != nil {
 		println("An error occured when getting session with id " + strconv.Itoa(id) + ". Error: " + err.Error())
 		return nil, err
@@ -60,7 +64,7 @@ func GetSession(id int, bySubjectId bool) (*models.Session, error) {
 		log.Println("Unexpected error. Error: " + err.Error())
 	}
 
-	if session.Tags, err = getTagsForSession(session.Id); err != nil {
+	if session.Tags, err = s.getTagsForSession(session.Id); err != nil {
 		fmt.Println("An error occured when getting tags for session_id: " + strconv.Itoa(id) + ". Error: " + err.Error())
 		return nil, err
 	}
@@ -68,53 +72,53 @@ func GetSession(id int, bySubjectId bool) (*models.Session, error) {
 	return session, nil
 }
 
-func UpdateSession(session models.Session) error {
+func (s SessionRepository) UpdateSession(session models.Session) error {
 	var err error
-	if _, err = Db.Exec("UPDATE subject set 'title'=$1,'notes'=$2,'progress'=$3,'date'=$4,'price'=$5,'subject_id'=$6 Where 'id'=$7", session.Title, session.Notes, session.Progress, session.Date, session.Price, session.SubjectId, session.SubjectId); err != nil {
+	if _, err = DbConn.Exec("UPDATE subject set 'title'=$1,'notes'=$2,'progress'=$3,'date'=$4,'price'=$5,'subject_id'=$6 Where 'id'=$7", session.Title, session.Notes, session.Progress, session.Date, session.Price, session.SubjectId, session.SubjectId); err != nil {
 		return err
 	}
 
-	if err = deleteSessionTags(session.Id); err != nil {
+	if err = s.TagRepository.deleteSessionTags(session.Id); err != nil {
 		return err
 	}
 
-	if err = insertSessionTags(session.Id, session.Tags); err != nil {
+	if err = s.TagRepository.insertSessionTags(session.Id, session.Tags); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func InsertSession(session models.Session) error {
+func (s SessionRepository) InsertSession(session models.Session) error {
 	var err error
-	if _, err = Db.Exec("INSERT INTO subject (title, notes, progress, date, price, subject_id) VALUES ($1,$2, $3,$4,$5,$6)", session.Title, session.Notes, session.Progress, session.Date, session.Progress, session.SubjectId); err != nil {
+	if _, err = DbConn.Exec("INSERT INTO subject (title, notes, progress, date, price, subject_id) VALUES ($1,$2, $3,$4,$5,$6)", session.Title, session.Notes, session.Progress, session.Date, session.Progress, session.SubjectId); err != nil {
 		return err
 	}
 
-	if err = insertSessionTags(session.Id, session.Tags); err != nil {
+	if err = s.TagRepository.insertSessionTags(session.Id, session.Tags); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func DeleteSession(sessionId int) error {
+func (s SessionRepository) DeleteSession(sessionId int) error {
 	var err error
-	if err = deleteSessionTags(sessionId); err != nil {
+	if err = s.TagRepository.deleteSessionTags(sessionId); err != nil {
 		return err
 	}
 
-	if _, err = Db.Exec("DELETE FROM session where id=$1", sessionId); err != nil {
+	if _, err = DbConn.Exec("DELETE FROM session where id=$1", sessionId); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func getTagsForSession(session_id int) ([]string, error) {
+func (s SessionRepository) getTagsForSession(session_id int) ([]string, error) {
 	var err error
 	var tags []models.Tag
-	if tags, err = GetSessionTags(session_id); err != nil {
+	if tags, err = s.TagRepository.GetSessionTags(session_id); err != nil {
 		log.Println("tags not found for session_id: " + strconv.Itoa(session_id) + ". Error: " + err.Error())
 		return nil, err
 	}

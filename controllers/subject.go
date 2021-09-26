@@ -3,17 +3,34 @@ package controllers
 import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
-	"journal/db"
 	"journal/models"
 	"log"
 	"net/http"
 	"strconv"
 )
 
-func GetSubjects(w http.ResponseWriter, r *http.Request) {
+type SubjectRepository interface {
+	GetSubjects() ([]models.Subject, error)
+	GetSubject(idInt int) (*models.Subject, error)
+	UpdateSubject(subject models.Subject) error
+	InsertSubject(subject models.Subject) error
+	DeleteSubject(idInt int) error
+}
+
+func NewSubjectHandler(repository SubjectRepository) *SubjectHandler {
+	return &SubjectHandler{
+		subjectRepository: repository,
+	}
+}
+
+type SubjectHandler struct {
+	subjectRepository SubjectRepository
+}
+
+func (s *SubjectHandler) GetSubjects(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var subjects []models.Subject
-	if subjects, err = db.GetSubjects(); err != nil {
+	if subjects, err = s.subjectRepository.GetSubjects(); err != nil {
 		log.Println("Database failed")
 		http.Error(w, http.StatusText(500), 500)
 		return
@@ -23,7 +40,7 @@ func GetSubjects(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(subjects)
 }
 
-func GetSubject(w http.ResponseWriter, r *http.Request) {
+func (s *SubjectHandler) GetSubject(w http.ResponseWriter, r *http.Request) {
 	var err error
 	id := chi.URLParam(r, "id")
 	if id == "" {
@@ -39,7 +56,7 @@ func GetSubject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var subject *models.Subject
-	if subject, err = db.GetSubject(idInt); err != nil {
+	if subject, err = s.subjectRepository.GetSubject(idInt); err != nil {
 		http.Error(w, http.StatusText(404), 404)
 		return
 	}
@@ -48,7 +65,7 @@ func GetSubject(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(subject)
 }
 
-func UpdateSubject(w http.ResponseWriter, r *http.Request) {
+func (s *SubjectHandler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 	var err error
 	subject := models.Subject{}
 	err = json.NewDecoder(r.Body).Decode(&subject)
@@ -58,8 +75,8 @@ func UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = db.UpdateSubject(subject); err != nil {
-		log.Fatalln("Update failed")
+	if err = s.subjectRepository.UpdateSubject(subject); err != nil {
+		log.Println("Update failed")
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
@@ -67,24 +84,24 @@ func UpdateSubject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 }
 
-func InsertSubject(w http.ResponseWriter, r *http.Request) {
+func (s *SubjectHandler) InsertSubject(w http.ResponseWriter, r *http.Request) {
 	var err error
 	subject := models.Subject{}
 	err = json.NewDecoder(r.Body).Decode(&subject)
 	if err != nil || subject.IsValid() == false {
-		println(err.Error())
+		log.Println(err.Error())
 		http.Error(w, http.StatusText(400), 400)
 	}
 
-	if err = db.InsertSubject(subject); err != nil {
-		log.Fatalln("Insert failed")
+	if err = s.subjectRepository.InsertSubject(subject); err != nil {
+		log.Println("Insert failed")
 		http.Error(w, http.StatusText(500), 500)
 	}
 
 	w.WriteHeader(200)
 }
 
-func DeleteSubject(w http.ResponseWriter, r *http.Request) {
+func (s *SubjectHandler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var idInt int
 
@@ -95,7 +112,7 @@ func DeleteSubject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(400), 400)
 	}
 
-	if err = db.DeleteSubject(idInt); err != nil {
+	if err = s.subjectRepository.DeleteSubject(idInt); err != nil {
 		log.Println("Delete db operation failed")
 		http.Error(w, http.StatusText(500), 500)
 	}

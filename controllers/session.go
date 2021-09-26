@@ -3,17 +3,34 @@ package controllers
 import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
-	"journal/db"
 	"journal/models"
 	"log"
 	"net/http"
 	"strconv"
 )
 
-func GetSessions(w http.ResponseWriter, r *http.Request) {
+type SessionRepository interface {
+	GetSessions(id int) ([]models.Session, error)
+	GetSession(sessionId int) (*models.Session, error)
+	UpdateSession(session models.Session) error
+	InsertSession(session models.Session) error
+	DeleteSession(sessionId int) error
+}
+
+type SessionHandler struct {
+	repository SessionRepository
+}
+
+func NewSessionHandler(sessionRepository SessionRepository) *SessionHandler {
+	return &SessionHandler{
+		repository: sessionRepository,
+	}
+}
+
+func (s *SessionHandler) GetSessions(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var sessions []models.Session
-	if sessions, err = db.GetSessions(); err != nil {
+	if sessions, err = s.repository.GetSessions(0); err != nil {
 		http.Error(w, http.StatusText(500), 500)
 	}
 
@@ -26,25 +43,18 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(sessions)
 }
 
-func GetSessionForSubject(w http.ResponseWriter, r *http.Request) {
-	getSession(w, r, true)
-}
-func GetSessionForSessionId(w http.ResponseWriter, r *http.Request) {
-	getSession(w, r, false)
-}
-
-func getSession(w http.ResponseWriter, r *http.Request, forSubjectId bool) {
+func (s *SessionHandler) GetSessionsForSubject(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var id string
-	var sessions *models.Session
-	id = extractIdFromUrl(id, r, forSubjectId)
+	var sessions []models.Session
+	id = extractIdFromUrl(id, r, true)
 	subjectId, err := strconv.Atoi(id)
 	if err != nil {
 		log.Println("Validation failed for session id. Error: " + err.Error())
 		http.Error(w, http.StatusText(400), 400)
 	}
 
-	if sessions, err = db.GetSession(subjectId, forSubjectId); err != nil {
+	if sessions, err = s.repository.GetSessions(subjectId); err != nil {
 		log.Println("Get sessions from db failed. Error: " + err.Error())
 		http.Error(w, http.StatusText(500), 500)
 	}
@@ -52,6 +62,26 @@ func getSession(w http.ResponseWriter, r *http.Request, forSubjectId bool) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	json.NewEncoder(w).Encode(sessions)
+}
+func (s *SessionHandler) GetSessionById(w http.ResponseWriter, r *http.Request) {
+	var err error
+	var id string
+	var session *models.Session
+	id = extractIdFromUrl(id, r, false)
+	sessionId, err := strconv.Atoi(id)
+	if err != nil {
+		log.Println("Validation failed for session id. Error: " + err.Error())
+		http.Error(w, http.StatusText(400), 400)
+	}
+
+	if session, err = s.repository.GetSession(sessionId); err != nil {
+		log.Println("Get sessions from db failed. Error: " + err.Error())
+		http.Error(w, http.StatusText(500), 500)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(session)
 }
 
 func extractIdFromUrl(id string, r *http.Request, forSubjectId bool) string {
@@ -61,7 +91,7 @@ func extractIdFromUrl(id string, r *http.Request, forSubjectId bool) string {
 	return id
 }
 
-func UpdateSession(w http.ResponseWriter, r *http.Request) {
+func (s *SessionHandler) UpdateSession(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	session := models.Session{}
@@ -71,7 +101,7 @@ func UpdateSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(400), 400)
 	}
 
-	if err = db.UpdateSession(session); err != nil {
+	if err = s.repository.UpdateSession(session); err != nil {
 		println("Update session failed. Error: " + err.Error())
 		http.Error(w, http.StatusText(500), 500)
 	}
@@ -79,7 +109,7 @@ func UpdateSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 }
 
-func InsertSession(w http.ResponseWriter, r *http.Request) {
+func (s *SessionHandler) InsertSession(w http.ResponseWriter, r *http.Request) {
 	var err error
 	session := models.Session{}
 	err = json.NewDecoder(r.Body).Decode(&session)
@@ -88,7 +118,7 @@ func InsertSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(400), 400)
 	}
 
-	if err = db.InsertSession(session); err != nil {
+	if err = s.repository.InsertSession(session); err != nil {
 		println("Insert session failed. Error: " + err.Error())
 		http.Error(w, http.StatusText(500), 500)
 	}
@@ -96,7 +126,7 @@ func InsertSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 }
 
-func DeleteSession(w http.ResponseWriter, r *http.Request) {
+func (s *SessionHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
 	var err error
 	id := chi.URLParam(r, "sessionid")
 	sessionId, err := strconv.Atoi(id)
@@ -105,7 +135,7 @@ func DeleteSession(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(400), 400)
 	}
 
-	if err = db.DeleteSession(sessionId); err != nil {
+	if err = s.repository.DeleteSession(sessionId); err != nil {
 		log.Println("Get sessions from db failed. Error: " + err.Error())
 		http.Error(w, http.StatusText(500), 500)
 	}

@@ -10,10 +10,13 @@ import (
 	"time"
 )
 
-func ValidateToken(r *http.Request) (string, time.Time, error) {
+type Auth struct {
+}
+
+func (a Auth) ValidateToken(r *http.Request) (string, time.Time, error) {
 	var claims jwt.MapClaims
 	var ok bool
-	token, err := VerifyToken(r)
+	token, err := verifyToken(r)
 	if err != nil {
 		return "", time.Time{}, err
 	}
@@ -35,8 +38,8 @@ func ValidateToken(r *http.Request) (string, time.Time, error) {
 	return userId, expD, nil
 }
 
-func VerifyToken(r *http.Request) (*jwt.Token, error) {
-	tokenString := ExtractToken(r)
+func verifyToken(r *http.Request) (*jwt.Token, error) {
+	tokenString := extractToken(r)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		//Make sure that the token method conform to "SigningMethodHMAC"
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -53,7 +56,7 @@ func VerifyToken(r *http.Request) (*jwt.Token, error) {
 	return token, nil
 }
 
-func ExtractToken(r *http.Request) string {
+func extractToken(r *http.Request) string {
 	cookie, err := r.Cookie("jwt")
 	if err != nil {
 		log.Println("Cookie failed")
@@ -63,7 +66,7 @@ func ExtractToken(r *http.Request) string {
 	return cookie.Value
 }
 
-func CreateToken(w http.ResponseWriter, userid string) error {
+func (a Auth) CreateToken(w http.ResponseWriter, userid string) error {
 	var err error
 	//Creating Access Token
 	os.Setenv("ACCESS_SECRET", "test") //this should be in an env file
