@@ -3,9 +3,8 @@ package controllers
 import (
 	"errors"
 	"net/http"
-	"testing"
-
 	"net/http/httptest"
+	"testing"
 )
 
 var createTokenResponse error
@@ -17,7 +16,7 @@ func (f FakeAuth) CreateToken(w http.ResponseWriter, userId string) error {
 	return createTokenResponse
 }
 
-func LoginFailsWhenValidateTokenReturnsError(t *testing.T) {
+func TestLoginFailsWhenValidateTokenReturnsError(t *testing.T) {
 
 	createTokenResponse = errors.New("Sonething")
 	handler := NewLoginHandler(FakeAuth{})
@@ -25,9 +24,20 @@ func LoginFailsWhenValidateTokenReturnsError(t *testing.T) {
 	w := httptest.NewRecorder()
 	handler.GetToken(w, req)
 
-	println(w.Code)
+	if w.Code != 500 {
+		t.Errorf("Test")
+	}
+}
 
-	if w.Code == 200 {
-		t.Error("Test")
+func TestLoginSucceedsWhenCreateTokenSuccesful(t *testing.T) {
+
+	createTokenResponse = nil
+	handler := NewLoginHandler(FakeAuth{})
+	req := httptest.NewRequest("GET", "/token", nil)
+	w := httptest.NewRecorder()
+	handler.GetToken(w, req)
+
+	if w.Code != 200 {
+		t.Errorf("Test")
 	}
 }

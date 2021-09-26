@@ -32,9 +32,9 @@ func (t TagRepository) GetAllTags() ([]models.Tag, error) {
 	return tags, nil
 }
 
-func (t TagRepository) InsertTag(tag models.Tag) error {
+func (t TagRepository) InsertTag(tagName string) error {
 	var err error
-	if _, err = DbConn.Exec("INSERT INTO tag (Name) VALUES ($1)", tag.Name); err != nil {
+	if _, err = DbConn.Exec("INSERT INTO tag (Name) VALUES ($1)", tagName); err != nil {
 		return err
 	}
 

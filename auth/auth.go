@@ -40,6 +40,9 @@ func (a Auth) ValidateToken(r *http.Request) (string, time.Time, error) {
 
 func verifyToken(r *http.Request) (*jwt.Token, error) {
 	tokenString := extractToken(r)
+	if tokenString == "" {
+		return nil, errors.New("token is missing")
+	}
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		//Make sure that the token method conform to "SigningMethodHMAC"
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -60,6 +63,7 @@ func extractToken(r *http.Request) string {
 	cookie, err := r.Cookie("jwt")
 	if err != nil {
 		log.Println("Cookie failed")
+		return ""
 	}
 
 	//normally Authorization the_token_xxx

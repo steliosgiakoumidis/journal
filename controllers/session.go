@@ -85,8 +85,8 @@ func (s *SessionHandler) GetSessionById(w http.ResponseWriter, r *http.Request) 
 }
 
 func extractIdFromUrl(id string, r *http.Request, forSubjectId bool) string {
-	if id = chi.URLParam(r, "sessionid"); forSubjectId {
-		id = chi.URLParam(r, "subjectid")
+	if id = chi.URLParam(r, "sessionId"); forSubjectId {
+		id = chi.URLParam(r, "subjectId")
 	}
 	return id
 }
@@ -128,7 +128,7 @@ func (s *SessionHandler) InsertSession(w http.ResponseWriter, r *http.Request) {
 
 func (s *SessionHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
 	var err error
-	id := chi.URLParam(r, "sessionid")
+	id := chi.URLParam(r, "sessionId")
 	sessionId, err := strconv.Atoi(id)
 	if err != nil {
 		log.Println("Validation failed for session id. Error: " + err.Error())

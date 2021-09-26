@@ -31,36 +31,35 @@ func init() {
 func main() {
 
 	r := chi.NewRouter()
-
 	r.Use(middleware.Timeout(time.Second * 60))
 	r.Use(middlewareHandler.TimingMiddleware)
 	r.Get("/", baseIndexHandler)
-	r.Get("/token", loginHandler.GetToken)
+	r.Get("/login", loginHandler.GetToken)
 
 	r.Route("/subjects", func(r chi.Router) {
 		r.Use(middlewareHandler.Authenticator)
 		r.Get("/", subjectHandler.GetSubjects)
-		r.Get("/{firstname}", subjectHandler.GetSubject)
+		r.Get("/{subjectId}", subjectHandler.GetSubject)
 		r.Put("/", subjectHandler.UpdateSubject)
 		r.Post("/", subjectHandler.InsertSubject)
-		r.Delete("/{subjectid}", subjectHandler.DeleteSubject)
+		r.Delete("/{subjectId}", subjectHandler.DeleteSubject)
 	})
 
 	r.Route("/sessions", func(r chi.Router) {
 		r.Use(middlewareHandler.Authenticator)
 		r.Get("/", sessionHandler.GetSessions)
-		r.Get("/{subjectid}", sessionHandler.GetSessionsForSubject)
+		r.Get("/{subjectId}", sessionHandler.GetSessionsForSubject)
 		r.Get("/{sessionId}", sessionHandler.GetSessionById)
 		r.Put("/", sessionHandler.UpdateSession)
 		r.Post("/", sessionHandler.InsertSession)
-		r.Delete("/{sessionid}", sessionHandler.DeleteSession)
+		r.Delete("/{sessionId}", sessionHandler.DeleteSession)
 	})
 
 	r.Route("/tags", func(r chi.Router) {
 		r.Use(middlewareHandler.Authenticator)
 		r.Get("/", tagHandler.GetTags)
-		r.Put("/{name}", tagHandler.InsertTag)
-		r.Delete("/{name}", tagHandler.DeleteTag)
+		r.Post("/{name}", tagHandler.InsertTag)
+		r.Delete("/{tagId}", tagHandler.DeleteTag)
 	})
 
 	http.ListenAndServe(":8080", r)

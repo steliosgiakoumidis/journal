@@ -42,7 +42,7 @@ func (s *SubjectHandler) GetSubjects(w http.ResponseWriter, r *http.Request) {
 
 func (s *SubjectHandler) GetSubject(w http.ResponseWriter, r *http.Request) {
 	var err error
-	id := chi.URLParam(r, "id")
+	id := chi.URLParam(r, "subjectId")
 	if id == "" {
 		http.Error(w, http.StatusText(400), 400)
 		return
@@ -105,7 +105,7 @@ func (s *SubjectHandler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var idInt int
 
-	id := chi.URLParam(r, "subjectid")
+	id := chi.URLParam(r, "subjectId")
 	idInt, err = strconv.Atoi(id)
 	if id == "" || err != nil {
 		log.Println("Id is missing or malformed. Error: " + err.Error())

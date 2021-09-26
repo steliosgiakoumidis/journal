@@ -11,7 +11,7 @@ import (
 
 type TagRepository interface {
 	GetAllTags() ([]models.Tag, error)
-	InsertTag(tag models.Tag) error
+	InsertTag(tag string) error
 	DeleteTag(idInt int) error
 }
 
@@ -39,15 +39,15 @@ func (t *TagHandler) GetTags(w http.ResponseWriter, r *http.Request) {
 
 func (t *TagHandler) InsertTag(w http.ResponseWriter, r *http.Request) {
 	var err error
-	var tag models.Tag
 	tagName := chi.URLParam(r, "name")
+	log.Println("Url path: " + r.URL.Path)
 	if tagName == "" {
-		println(err.Error())
+		log.Println("tag name parameter is missing")
 		http.Error(w, http.StatusText(400), 400)
 	}
 
-	if err = t.tagRepository.InsertTag(tag); err != nil {
-		log.Fatalln("Database failed")
+	if err = t.tagRepository.InsertTag(tagName); err != nil {
+		log.Println("Database failed")
 		http.Error(w, http.StatusText(500), 500)
 	}
 
@@ -57,7 +57,7 @@ func (t *TagHandler) InsertTag(w http.ResponseWriter, r *http.Request) {
 func (t *TagHandler) DeleteTag(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var idInt int
-	id := chi.URLParam(r, "id")
+	id := chi.URLParam(r, "tagId")
 	idInt, err = strconv.Atoi(id)
 	if id == "" || err != nil {
 		log.Println("Id is missing or malformed. Error: " + err.Error())
